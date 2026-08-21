@@ -1,6 +1,5 @@
-from typing import Union
-
-# 自定义的错误码都在此包中
+# 自定义的错误码 & 常量都在此包中
+APP_NAME: str = "wechat"
 
 # 处理正常响应码
 WXSuccess: int = 0
@@ -67,7 +66,7 @@ InvaildMsgType: int = 10021
 
 
 code_description = {
-    0: "正常响应",
+    0: "成功",
     10001: "无效的 token",
     10002: "msg_signature 未校验通过",
     10003: "无效的 encodingAESKey ",
@@ -90,6 +89,7 @@ code_description = {
     10021: "不支持的消息类型, msgtype 可选 text | markdown | template_card",
 }
 
+
 class CustomException(Exception):
     def __init__(self, code: int):
         """
@@ -105,6 +105,7 @@ class CustomException(Exception):
         Returns: 异常日志
         """
         return f"code: {self.code}, description: {self.code_description}"
+
 
 def ResponseBody(code: int):
     response_data = {
