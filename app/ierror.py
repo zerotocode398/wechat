@@ -1,5 +1,4 @@
-# 自定义的错误码 & 常量都在此包中
-APP_NAME: str = "wechat"
+# 自定义的错误码都在此包中
 
 # 处理正常响应码
 WXSuccess: int = 0

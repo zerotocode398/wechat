@@ -3,9 +3,9 @@ import traceback
 
 import yaml
 
-from log import Logger
-from utils import Dict2Obj
-from ierror import *
+from app.log import Logger
+from app.utils import Dict2Obj
+from app.ierror import *
 
 
 class Config(Dict2Obj):

@@ -4,12 +4,11 @@ import os
 import time
 from functools import wraps
 from colorlog import ColoredFormatter
-from ierror import APP_NAME
 
 
 os.makedirs("logs", exist_ok=True)
 
-logName = f"{os.path.dirname(os.path.abspath(__file__))}/logs/{APP_NAME}-{str(time.strftime('%Y-%m-%d'))}.log"
+logName = f"{os.path.dirname(os.path.abspath(__file__))}/logs/wechat-{str(time.strftime('%Y-%m-%d'))}.log"
 
 
 class Logger:
