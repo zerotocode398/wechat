@@ -252,7 +252,7 @@ receivers:
     }
   ],
   "notification_reason": "first notification",
-  "groupLabels": { "hostname": "operate01" },
+  "groupLabels": { "hostname": "xxxxx" },
   "commonLabels": {
     "hostname": "xxxxx",
     "instance": "111.111.111.11:9100",
