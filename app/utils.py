@@ -23,3 +23,11 @@ class Dict2Obj(object):
 
     def __getitem__(self, key: Any) -> Any:
         return self.map_[key]
+
+    def get(self, key: Any, default: Any = None) -> Any:
+        val = self.map_.get(key, default)
+        if isinstance(val, dict):
+            return Dict2Obj(val)
+        elif isinstance(val, list):
+            return [item for item in val]
+        return val

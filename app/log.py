@@ -2,55 +2,45 @@ import logging
 import sys
 import os
 import time
+import asyncio
 from functools import wraps
 from colorlog import ColoredFormatter
-
-
-os.makedirs("logs", exist_ok=True)
-
-logName = f"{os.path.dirname(os.path.abspath(__file__))}/logs/wechat-{str(time.strftime('%Y-%m-%d'))}.log"
 
 
 class Logger:
     _instance = None
 
-    def __new__(cls, output: str = "stdout"):
+    def __new__(cls, level="INFO"):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance.logger = cls._instance.setup_logger(output)
+            cls._instance.logger = cls._instance.setup_logger(level)
         return cls._instance
 
-    def setup_logger(self, output):
-        # set the log level to DEBUG
-        logger = logging.getLogger()
-        logger.setLevel(logging.DEBUG)
-        # Create a formatter with the desired log format
-        log_format = "%(asctime)s  %(levelname)-8s | %(message)s"
-        formatter = logging.Formatter(log_format)
-        if output == "stdout":
-            # Create a colored formatter for console output
-            console_formatter = ColoredFormatter(
-                "%(log_color)s%(asctime)s | %(levelname)-5s%(reset)s | %(log_color)s%(message)s%(reset)s"
-            )
-            # support stdout
-            console_handler = logging.StreamHandler(sys.stdout)
-            console_handler.setFormatter(console_formatter)
-            logger.addHandler(console_handler)
-        else:
-            # Create a file handler and logs path
-            file_handler = logging.FileHandler(logName)
-            file_handler.setFormatter(formatter)
-            logger.addHandler(file_handler)
+    def setup_logger(self, level):
+
+        logger = logging.getLogger("wealert")
+
+        if logger.handlers:
+            return logger
+
+        log_level = getattr(logging, level.upper(), logging.INFO)
+        logger.setLevel(log_level)
+        logger.propagate = False
+
+        logging.getLogger("urllib3").setLevel(logging.WARNING)
+        logging.getLogger("requests").setLevel(logging.WARNING)
+
+        formatter = ColoredFormatter(
+            "%(log_color)s%(asctime)s | %(levelname)-5s%(reset)s | %(log_color)s%(message)s%(reset)s"
+        )
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
 
         return logger
 
-    def set_log_level(self, module_name, level):
-        module_logger = logging.getLogger(module_name)
-        module_logger.setLevel(level)
-
-    # def set_apscheduler_log_level(self, level):
-    #     apscheduler_logger = logging.getLogger('apscheduler')
-    #     apscheduler_logger.setLevel(level)
+    def set_level(self, level):
+        self.logger.setLevel(getattr(logging, level.upper(), logging.INFO))
 
     def info(self, msg):
         self.logger.info(msg)
@@ -63,23 +53,52 @@ class Logger:
 
     def error(self, msg):
         self.logger.error(msg)
-        exit(1)
 
     def fatal(self, msg):
         self.logger.fatal(msg)
-        exit(1)
+
+    def exception(self, msg):
+        self.logger.exception(msg)
 
 
-def log_method(func):
+logger = Logger()
+
+
+def WeLog(func):
+    if asyncio.iscoroutinefunction(func):
+
+        @wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            cls = args[0].__class__.__name__ if args else ""
+            logger.debug(
+                f"calling [{cls}.{func.__name__}] args={args[1:]}, kwargs={kwargs}"
+            )
+            try:
+                result = await func(*args, **kwargs)
+                logger.debug(f"function [{cls}.{func.__name__}] returned: {result}")
+                return result
+            except Exception as e:
+                if not getattr(e, "_we_logged", False):
+                    e._we_logged = True
+                    logger.exception(f"function [{cls}.{func.__name__}] execute failed")
+                raise
+
+        return async_wrapper
+
     @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        logger = Logger()
-        logger.info(f"Calling  [{func.__name__}] with args: {args}, kwargs: {kwargs}")
+    def wrapper(*args, **kwargs):
+        cls = args[0].__class__.__name__ if args else ""
+        logger.debug(
+            f"calling [{cls}.{func.__name__}] args={args[1:]}, kwargs={kwargs}"
+        )
         try:
-            result = func(self, *args, **kwargs)
-            logger.info(f"Function [{func.__name__}] returned: {result}")
+            result = func(*args, **kwargs)
+            logger.debug(f"function [{cls}.{func.__name__}] returned: {result}")
             return result
         except Exception as e:
-            logger.error(f"Function [{func.__name__}] raised an exception: {str(e)}")
+            if not getattr(e, "_we_logged", False):
+                e._we_logged = True
+                logger.exception(f"function [{cls}.{func.__name__}] execute failed")
+            raise
 
     return wrapper
